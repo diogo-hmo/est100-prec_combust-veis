@@ -1,0 +1,531 @@
+---
+title: "Análise Preço de Combustíveis"
+author: "Diogo, Lívia, Gabriel Resende"
+date: "2026-06-21"
+output: html_document
+encoding: UTF-8
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(janitor)
+library(dplyr)
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(ggplot2)
+
+dir.create("../dados/tratados", recursive = TRUE, showWarnings = FALSE)
+
+# 1. Importando a base da ANP 
+anp_bruta <- readr::read_csv2("../dados/brutos/preco_regioes_bruto.csv", skip = 16, locale = locale(encoding = "latin1"), show_col_types = FALSE) %>% 
+  clean_names()
+
+# 2. Importando a base do IPCA 
+ipca_bruto <- readr::read_csv2("../dados/brutos/ipca_bruto.csv", skip = 1, locale = locale(encoding = "latin1"), show_col_types = FALSE) %>% 
+  clean_names()
+```
+## Introdução
+O comportamento dos preços dos combustíveis no Brasil é um tema central nas discussões económicas e sociais, dado o seu impacto direto no custo de vida da população, nos custos de transporte e na inflação estrutural do país. Compreender a dinâmica histórica desses preços vai além de observar os valores nominais exibidos nos postos de combustíveis; exige uma análise rigorosa que separe o aumento real do valor do produto da perda geral do poder de compra da moeda ao longo do tempo.
+
+A relevância deste estudo é corroborada pela Pesquisa de Orçamentos Familiares (POF) do IBGE. Segundo a última edição da pesquisa, o grupo 'Transportes' consome cerca de 18,1% do orçamento das famílias brasileiras, sendo a segunda maior despesa do país. Portanto, a escalada nos preços dos combustíveis não afeta apenas a estrutura de custos das empresas de logística — como será modelado neste estudo através dos índices ponderados —, mas corrói de forma direta e severa o poder de compra da população, justificando a necessidade de um deflacionamento rigoroso da série histórica.
+
+Este relatório dedica-se a estudar a evolução do preço da gasolina comum na região Sudeste do Brasil ao longo de uma série histórica que abrange mais de uma década. Para que a análise seja estatisticamente válida e economicamente interpretável, o estudo divide-se no levantamento de duas bases principais de dados: a variação dos preços nominais captados no mercado (Base A) e os índices de inflação oficial do país mensurados pelo IPCA (Base B). O cruzamento destas duas forças permitirá identificar os momentos de encarecimento real e as janelas de estabilização do combustível.
+
+### Pergunta Norteadora
+Para guiar as análises quantitativas e as interpretações económicas deste trabalho, estabeleceu-se a seguinte questão central:
+
+"Até que ponto as flutuações e os picos observados no preço da gasolina comum na região Sudeste, entre os anos de 2013 e 2026, refletem um aumento real no valor económico do combustível ou são apenas o resultado do processo inflacionário acumulado no período?"
+
+
+
+
+### Apresentação da Base A (Série Temporal de Preços)
+A tabela abaixo apresenta os dados iniciais da Base A, estruturada para a análise exploratória deste relatório. O objetivo desta seção é isolar o comportamento do mercado de combustíveis em um recorte específico para garantir a consistência do estudo.
+
+Os dados brutos originais foram filtrados para compreender apenas o Preço Médio de Revenda da Gasolina Comum na região Sudeste do Brasil, cobrindo uma série histórica mensal que se estende de janeiro de 2013 a junho de 2026. Para viabilizar a construção dos modelos visuais e garantir que o software organize os meses cronologicamente, as informações temporais textuais foram convertidas para o formato padronizado de calendário (Data).
+
+Para iniciar a compreensão da dinâmica dos preços da gasolina comum na região Sudeste ao longo de todo o período amostral (janeiro de 2013 a junho de 2026), realizou-se primeiramente uma análise descritiva global dos dados nominais obtidos junto à ANP. Esta etapa é fundamental para resumir o comportamento histórico do combustível de forma agregada, permitindo identificar o patamar central dos preços, a amplitude total de variação e o grau de dispersão dos valores cobrados na bomba.
+
+A **Tabela abaixo** sintetiza as principais medidas de posição (média, mediana e quartis) e de variabilidade (desvio padrão, valores mínimos e máximos). Esses indicadores estatísticos funcionam como um diagnóstico inicial indispensável, mapeando a estrutura e o comportamento dos dados antes de avançarmos para as distribuições frequenciais, análises gráficas e posterior cruzamento com as taxas de inflação.
+
+
+```{r base_a, echo=FALSE}
+# Criando a Base A
+base_a <- anp_bruta %>%
+  filter(regiao == "SUDESTE", produto == "GASOLINA COMUM") %>%
+  mutate(
+    mes_ing = str_replace_all(tolower(mes), c(
+      "fev" = "feb", "abr" = "apr", "mai" = "may", 
+      "ago" = "aug", "set" = "sep", "out" = "oct", "dez" = "dec"
+    )),
+    Data = lubridate::my(mes_ing),
+    Ano = lubridate::year(Data)
+  ) %>% 
+  dplyr::select(Data, Ano, produto, regiao, preco_medio_revenda)
+
+# Salvando a base tratada
+readr::write_csv2(base_a, "../dados/tratados/base_a_tratada.csv")
+  
+# Calculando as estatísticas
+estatisticas <- base_a %>%
+  summarise(
+    `Mínimo` = round(min(preco_medio_revenda), 2),
+    `1º Quartil` = round(quantile(preco_medio_revenda, 0.25), 2),
+    `Mediana` = round(median(preco_medio_revenda), 2),
+    `Média` = round(mean(preco_medio_revenda), 2),
+    `3º Quartil` = round(quantile(preco_medio_revenda, 0.75), 2),
+    `Máximo` = round(max(preco_medio_revenda), 2),
+    `Desvio Padrão` = round(sd(preco_medio_revenda), 2)
+  )
+
+# Tabela de estatísticas
+knitr::kable(estatisticas, digits = 2, caption = "Tabela das Estatísticas Descritivas do Preço da Gasolina (R$/L)")
+```
+Observando as medidas de posição, nota-se que 50% dos meses analisados registraram um preço de gasolina de até R$ 4,40 (Mediana), enquanto a Média histórica posicionou-se em `r round(mean(base_a$preco_medio_revenda), 2)` R$/L. O fato de a média ser maior que a mediana indica uma distribuição assimétrica à direita, puxada pelos preços extremos (outliers) observados recentemente.
+
+Analisando as separatrizes (quartis), constata-se que em 25% do período estudado (1º Quartil), a gasolina custou no máximo R$ 3,46, correspondendo aos anos iniciais de estabilidade. Por outro lado, o 3º Quartil revela que em 25% dos meses mais caros da década, o consumidor pagou valores acima de R$ 5,37 por litro. O Desvio Padrão de `r round(sd(base_a$preco_medio_revenda), 2)` R$/L indica uma dispersão altíssima, o que corrobora a forte volatilidade e a imprevisibilidade de custos para o setor de transportes ao longo da série histórica.
+
+Abaixo, é exibida uma amostra contendo as seis primeiras observações registradas na série histórica:
+```{r base_a.1, echo=FALSE}
+
+knitr::kable(
+  head(base_a), 
+  col.names = c("Data", "Ano", "Produto", "Região", "Preço Médio (R$)")
+)
+
+library(gridExtra)
+
+# Gráfico 1: Histograma (Distribuição)
+g1 <- ggplot(base_a, aes(x = preco_medio_revenda)) +
+  geom_histogram(fill = "steelblue", color = "white", bins = 15) +
+  labs(title = "Distribuição de Frequências", x = "Preço (R$)", y = "Frequência (Meses)") +
+  theme_minimal()
+
+# Gráfico 2: Boxplot Bivariado (Preço x Ano)
+g2 <- ggplot(base_a, aes(x = as.factor(Ano), y = preco_medio_revenda)) +
+  geom_boxplot(fill = "lightgray", color = "darkblue") +
+  labs(title = "Dispersão Anual (Boxplot)", x = "Ano", y = "Preço (R$)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Plotando Histograma e Boxplot lado a lado
+grid.arrange(g1, g2, ncol = 2)
+```
+**Interpretação das Visualizações Gráficas:**
+
+O **histograma** apresenta a distribuição de frequências dos preços nominais da gasolina ao longo de todo o período analisado. Nota-se que a maior concentração de meses ocorre nas faixas de preços mais baixas, o que reflete os anos iniciais da série, caracterizados por uma maior estabilidade e controle tarifário. No entanto, a presença de uma cauda alongada à direita no gráfico ilustra os choques inflacionários recentes, que empurraram os preços para valores extremos.
+
+Por sua vez, o **boxplot bivariado ** permite visualizar a evolução temporal da dispersãoda gasolina. É nítido que os anos iniciais ,como 2013 a 2017, apresentam caixas muito "achatadas", indicando baixa variação de preços dentro do mesmo ano. Em contrapartida, os anos de 2021 e 2022 exibem caixas extremamente alongadas e uma grande amplitude entre o limite inferior e superior, evidenciando o período de maior instabilidade econômica, reflexo da política de preços e das tensões no mercado internacional de petróleo.
+
+
+
+
+
+```{r base_a.2, echo=FALSE}       
+# Gerando o gráfico de linha (Série Temporal)
+ggplot(base_a, aes(x = Data, y = preco_medio_revenda)) +
+  geom_line(color = "firebrick", size = 1) +
+  labs(
+    title = "Evolução do Preço Nominal da Gasolina Comum - Sudeste",
+    x = "Ano",
+    y = "Preço na Bomba (R$)"
+  ) +
+  theme_minimal()
+```
+
+### Análise Exploratória - Base A
+
+A Base A utilizada nesta etapa contém dados sobre o **Preço Médio de Revenda** da **Gasolina Comum** na região **Sudeste** do Brasil. Os dados foram extraídos da **ANP (Agência Nacional do Petróleo, Gás Natural e Biocombustíveis)**, com periodicidade mensal, cobrindo o período de **janeiro de 2013 a junho de 2026**. A unidade de medida utilizada é **Reais por Litro (R$/L)**.
+
+Observando o gráfico de evolução nominal, nota-se uma tendência geral de alta ao longo da década, com forte aceleração a partir de 2021, culminando no pico histórico de preços em meados de 2022 (ultrapassando a marca de R$ 7,00). Após esse pico, houve uma queda brusca, seguida de uma nova tendência de retomada gradual dos preços.
+
+## Base B: Cesta para Construção dos Índices Ponderados
+
+Para responder de forma mais aprofundada à questão norteadora e cumprir os requisitos metodológicos de cálculo de números-índices ponderados (Laspeyres, Paasche e Fisher), a análise de um único produto torna-se insuficiente. Faz-se necessário construir uma estrutura multivariada que relacione preços ($p$) e quantidades ($q$) de múltiplos itens ao longo do tempo.
+
+Nesta etapa, estruturamos a **Base B**, que consiste em uma cesta hipotética composta por **6 produtos distintos do setor de combustíveis**: Gasolina Comum, Gasolina Aditivada, Etanol Hidratado, Óleo Diesel, Óleo Diesel S10 e Gás Liquefeito de Petróleo (GLP). O recorte temporal selecionado abrange **4 períodos anuais consecutivos (2020 a 2023)**, uma janela crítica que capturou fortes oscilações no mercado energético.
+
+**Estratégia Metodológica e Definição das Quantidades ($q$):**
+Dado que a base de dados pública da ANP fornece o monitoramento dos preços médios praticados ao consumidor, mas não o volume exato de vendas nesses mesmos recortes, adotou-se uma proxy justificada. Simulou-se o perfil de consumo anual da frota de uma pequena empresa de logística e transportes atuante na região Sudeste. 
+
+As quantidades estipuladas nesta cesta não são estáticas, elas refletem uma transição operacional realista da empresa (como a redução gradual do uso de Óleo Diesel comum e a migração para o Diesel S10, menos poluente e exigido em motores mais modernos), além do consumo constante de GLP em suas instalações. Essa matriz de quantidades permite calcular rigorosamente o Valor ($v_{it} = p_{it} \times q_{it}$) para cada produto em cada período, viabilizando o cálculo exato dos índices de preços na etapa seguinte.
+```{r base_b, echo=FALSE}
+base_b_precos <- anp_bruta %>%
+  filter(regiao == "SUDESTE", 
+         produto %in% c("GASOLINA COMUM", "GASOLINA ADITIVADA", "ETANOL HIDRATADO", "OLEO DIESEL", "OLEO DIESEL S10", "GLP")) %>%
+  mutate(
+    mes_ing = str_replace_all(tolower(mes), c("fev"="feb", "abr"="apr", "mai"="may", "ago"="aug", "set"="sep", "out"="oct", "dez"="dec")),
+    Data = lubridate::my(mes_ing),
+    Ano = as.character(lubridate::year(Data))
+  ) %>%
+  filter(Ano %in% c("2020", "2021", "2022", "2023")) %>%
+  group_by(Ano, produto) %>%
+  summarise(p = round(mean(preco_medio_revenda, na.rm = TRUE), 2), .groups = "drop")
+
+# 2. Criando a matriz de Quantidades (q) justificada no texto
+quantidades <- tibble(
+  produto = rep(c("GASOLINA COMUM", "GASOLINA ADITIVADA", "ETANOL HIDRATADO", "OLEO DIESEL", "OLEO DIESEL S10", "GLP"), 4),
+  Ano = c(rep("2020", 6), rep("2021", 6), rep("2022", 6), rep("2023", 6)),
+  q = c(
+    # 2020
+    1200, 300, 800, 1500, 2000, 130,
+    # 2021
+    1100, 250, 900, 1300, 2200, 130,
+    # 2022
+    1000, 200, 1000, 1000, 2500, 130,
+    # 2023
+    900, 150, 1100, 800, 2800, 130
+  )
+)
+
+# 3. Juntando Preço (p), Quantidade (q) e calculando o Valor (v = p * q)
+base_b <- base_b_precos %>%
+  left_join(quantidades, by = c("Ano", "produto")) %>%
+  mutate(v = p * q)
+
+# Exportando a Base B
+readr::write_csv2(base_b, "../dados/tratados/base_b_cesta.csv")
+
+# Exibindo os primeiros resultados
+knitr::kable(head(base_b, 8), col.names = c("Ano", "Produto", "Preço (p)", "Quantidade (q)", "Valor (v)"))
+```
+
+A tabela apresenta a matriz de preços médios anuais ($p$), as quantidades simuladas de consumo ($q$) e o valor total gasto ($v = p \times q$) para os seis produtos da cesta durante os anos de 2020 a 2023. Através da variável Valor ($v$), nota-se o peso financeiro que cada combustível exerce no orçamento global da empresa de transportes hipotética. O Óleo Diesel S10, por exemplo, não apenas possui um preço elevado, mas também representa o maior volume de consumo na frota, assumindo um papel de grande relevância (peso) para os cálculos dos índices agregados que se seguem.
+
+**OBS:**Na economia real, a definição dos pesos de cada produto numa cesta de inflação oficial é determinada pela POF (Pesquisa de Orçamentos Familiares) do IBGE, que mapeia o padrão de consumo das famílias. Contudo, como este estudo foca no mercado de combustíveis sob uma ótica empresarial, adotamos uma proxy metodológica substituindo a POF pelo perfil de consumo anual simulado de uma frota de transportes.
+
+
+
+# 4. Números-Índices
+
+Os números-índices são medidas estatísticas que permitem comparar a variação de uma ou mais grandezas  ao longo do tempo, em relação a um período base.
+
+### 4.1. Relativos Simples de Preço 
+
+O relativo simples de preço mede a variação isolada de um único produto, sem considerar o seu peso numa cesta. A fórmula é dada por $I_t = \frac{p_t}{p_0} \times 100$, onde $p_0$ é o preço no período base. O produto escolhido para ilustrar o cálculo simples foi a **Gasolina Comum**.
+
+### 4.1. Relativos Simples e Elos Relativos (Base Móvel)
+
+O relativo simples de preço mede a variação isolada de um único produto. Para uma análise completa, calculamos duas óticas: a **Base Fixa** ($I_t = \frac{p_t}{p_0} \times 100$), que compara todos os anos com o ano-base (2020), e a **Base Móvel ou Elos Relativos** ($I_t = \frac{p_t}{p_{t-1}} \times 100$), que encadeia os índices comparando cada ano com o ano imediatamente anterior, evidenciando a aceleração ou desaceleração dos preços a curto prazo. O produto escolhido para ilustrar o cálculo simples foi a **Gasolina Comum**.
+
+```{r relativos_simples, echo=FALSE}
+base_simples <- base_b %>%
+  filter(produto == "GASOLINA COMUM") %>%
+  arrange(Ano) %>% # Garante a ordem cronológica
+  mutate(
+    # Preço base fixo (2020)
+    p0 = p[Ano == "2020"],
+    # Preço do ano imediatamente anterior
+    p_anterior = lag(p),
+    
+    # Cálculos dos Índices
+    Indice_Base_Fixa = (p / p0) * 100,
+    Elo_Relativo_Base_Movel = (p / p_anterior) * 100
+  ) %>%
+  dplyr::select(
+    Ano, 
+    Produto = produto, 
+    `Preço (R$)` = p, 
+    `Base Fixa (2020=100)` = Indice_Base_Fixa,
+    `Base Móvel (Ano Anterior=100)` = Elo_Relativo_Base_Movel
+  )
+
+knitr::kable(base_simples, digits = 2, caption = "Tabela 3: Relativos Simples e Elos Relativos de Preço - Gasolina Comum")
+```
+
+Fixando o ano de 2020 como base (Índice = 100), observamos o crescimento nominal 
+isolado da gasolina comum. Em 2021, o índice atingiu **134,35**, evidenciando um 
+encarecimento acumulado de **34,35%** em relação ao ano base. Em 2022, o índice 
+alcançou o seu pico de **141,59**, representando o maior encarecimento do período, 
+com acréscimo de **41,59%** frente a 2020. Em 2023, houve um recuo para **125,70**, 
+indicando uma desaceleração dos preços, ainda que o litro da gasolina tenha 
+encerrado o período **25,70%** mais caro do que no ano base.
+
+Por outro lado, a coluna de Base Móvel  permite-nos perceber o ritmo anual das mudanças (o ano de 2020 apresenta NA - Não Disponível - pois não há dados de 2019 na nossa cesta para efetuar a divisão). Observando a base móvel, notamos que o grande choque ocorreu de facto em 2021, quando a gasolina encareceu 34,35% num único ano (índice 134,35). De 2021 para 2022, embora o preço tenha atingido o seu valor máximo histórico, a taxa de crescimento anual desacelerou, subindo apenas cerca de 5,39% face ao ano anterior (elo relativo de 105,39). Por fim, o elo de 88,78 em 2023 evidencia a deflação nominal daquele ano, significando que o preço caiu cerca de 11,22% face a 2022.
+
+### 4.2. Índices Ponderados: Laspeyres, Paasche e Fisher:
+  Quando analisamos uma cesta de produtos, como a frota da nossa empresa de transportes, os relativos simples são insuficientes, pois não captam a importância (peso) de cada combustível no orçamento total. Para isso, recorremos aos Índices Agregados Ponderados.Índice de Laspeyres ($L$): Utiliza as quantidades do período base ($q_0$) como pesos.Índice de Paasche ($P$): Utiliza as quantidades do período atual ($q_t$) como pesos.Índice Ideal de Fisher ($F$): É a média geométrica entre Laspeyres e Paasche, eliminando o viés inerente a cada um.
+  
+```{r relativos_ponderados, echo=FALSE}
+# Separando os dados do período base (2020)
+base_0 <- base_b %>%
+  filter(Ano == "2020") %>%
+  dplyr::select(produto, p0 = p, q0 = q)
+
+# Juntando os dados do ano base com todos os anos para calcular as somas
+indices_agregados <- base_b %>%
+  left_join(base_0, by = "produto") %>%
+  group_by(Ano) %>%
+  summarise(
+    sum_p0_q0 = sum(p0 * q0), # Custo da cesta base nos preços base
+    sum_pt_q0 = sum(p * q0),  # Custo da cesta base nos preços atuais
+    sum_pt_qt = sum(p * q),   # Custo da cesta atual nos preços atuais
+    sum_p0_qt = sum(p0 * q)   # Custo da cesta atual nos preços base
+  ) %>%
+  mutate(
+    Laspeyres = (sum_pt_q0 / sum_p0_q0) * 100,
+    Paasche = (sum_pt_qt / sum_p0_qt) * 100,
+    Fisher = sqrt(Laspeyres * Paasche)
+  ) %>%
+  dplyr::select(Ano, Laspeyres, Paasche, Fisher)
+
+knitr::kable(indices_agregados, digits = 2, caption = "Tabela 4: Índices Ponderados de Preços (Base 2020 = 100)")
+```
+1. **Laspeyres:** Em 2021, o índice de Laspeyres marcou **132,42**. Isto indica 
+que, se a empresa tivesse mantido exatamente o mesmo perfil de consumo que praticava em 2020, o seu custo com 
+abastecimento teria aumentado **32,42%** naquele ano. Em 2022, atingiu o pico de 
+**165,89**, representando o pior cenário do período. Este índice tende a 
+superestimar a inflação da empresa, pois não considera que o consumidor adapta 
+a sua demanda diante do encarecimento.
+
+2. **Paasche:** O índice de Paasche capta justamente esse efeito de substituição. 
+Em todos os anos, ele apresentou valores ligeiramente superiores ao de Laspeyres, 
+registrando **132,51** em 2021, **166,62** no pico de 2022 e **149,93** em 2023. 
+Isso indica que, mesmo adaptando o consumo aos volumes efetivamente praticados, 
+o encarecimento real foi equivalente ao cenário estático, sugerindo pouca 
+flexibilidade de substituição entre os combustíveis da cesta.
+
+3. **Fisher:** Para neutralizar as imperfeições de ambos, o Índice Ideal de Fisher 
+atuou como um balizador equilibrado. Registrou **132,46** em 2021, atingiu o pico 
+de **166,25** em 2022 e encerrou a série em 2023 marcando **149,40**. Isso 
+evidencia, de forma consolidada e livre de viés, que a empresa suportou um 
+encarecimento real de **49,40%** para operar a sua frota em relação ao ano base 
+de 2020.
+s
+## 5. Deflacionamento e Poder Aquisitivo (Base C)
+
+Na economia, a ilusão monetária ocorre quando observamos apenas o crescimento dos valores absolutos sem considerar a corrosão do poder de compra da moeda. Para responder à pergunta central deste projeto, é imperativo transformar a série de preços nominais (Base A) numa série de preços reais. 
+
+Para isso, recorreu-se ao **IPCA (Índice Nacional de Preços ao Consumidor Amplo)**, que atua como o medidor oficial da inflação no Brasil. A base bruta do IPCA foi tratada para gerar a **Base C**, alinhando cronologicamente os índices mensais ao período da Base A. Utilizou-se a técnica de deflacionamento trazendo todos os preços passados para a moeda com o poder de compra do último mês da série (junho de 2026), através da fórmula: 
+$Preço\ Real_t = Preço\ Nominal_t \times \frac{Índice_{Jun/2026}}{Índice_t}$.
+
+```{r deflacionamento, echo=FALSE, fig.width=10, fig.height=5, warning=FALSE, message=FALSE}
+# 1. Tratamento da Base C (IPCA) Isolada e Cálculo do Índice
+base_c_ipca <- ipca_bruto %>%
+  rename(regiao = 1) %>%
+  filter(stringr::str_detect(regiao, "Brasil|Nacional")) %>%
+  mutate(across(-regiao, as.character)) %>%
+  pivot_longer(cols = -regiao, names_to = "mes_ano", values_to = "ipca_var") %>%
+  mutate(mes_ano_limpo = str_replace_all(mes_ano, "mar_a_o", "mar")) %>%
+  mutate(
+    mes_ano_limpo = str_replace_all(mes_ano_limpo, c(
+      "janeiro"  = "jan", "fevereiro" = "feb",
+      "abril"    = "apr", "maio"      = "may",
+      "junho"    = "jun", "julho"     = "jul",
+      "agosto"   = "aug", "setembro"  = "sep",
+      "outubro"  = "oct", "novembro"  = "nov",
+      "dezembro" = "dec", "_"         = " "
+    )),
+    Data_IPCA = lubridate::my(mes_ano_limpo),
+    Ano       = lubridate::year(Data_IPCA),
+    Mes       = lubridate::month(Data_IPCA),
+    ipca_var  = as.numeric(str_replace(ipca_var, ",", "."))
+  ) %>%
+  filter(Ano >= 2013) %>%
+  drop_na(Ano, Mes, ipca_var) %>%
+  filter(ipca_var > -5, ipca_var < 5) %>%
+  group_by(Ano, Mes) %>%
+  summarise(ipca_var = first(ipca_var), .groups = "drop") %>%
+  arrange(Ano, Mes) %>%
+  mutate(
+    fator_mensal  = 1 + (ipca_var / 100),
+    numero_indice = cumprod(fator_mensal)
+  )
+
+# 2. Unindo com a Base A (Gasolina) por Ano e Mês
+base_deflacionada <- base_a %>%
+  mutate(
+    Ano = lubridate::year(Data),
+    Mes = lubridate::month(Data)
+  ) %>%
+  left_join(base_c_ipca, by = c("Ano", "Mes")) %>%
+  drop_na(preco_medio_revenda, numero_indice) %>%
+  arrange(Data)
+
+# 3. Calculando o Preço Real Deflacionado
+base_deflacionada <- base_deflacionada %>%
+  mutate(
+    indice_final = last(numero_indice),
+    preco_real = preco_medio_revenda * (indice_final / numero_indice)
+  )
+
+# 4. Tabela Comparativa Anual (Média)
+tabela_comparativa <- base_deflacionada %>%
+  group_by(Ano) %>%
+  summarise(
+    `Preço Nominal Médio (R$)` = round(mean(preco_medio_revenda), 2),
+    `Preço Real Deflacionado (R$)` = round(mean(preco_real), 2)
+  )
+
+knitr::kable(tabela_comparativa, caption = "Tabela 5: Evolução Anual - Preço Nominal vs. Preço Real (Moeda de Jun/2026)")
+
+# 5. Gráfico Final
+ggplot(base_deflacionada, aes(x = Data)) +
+  geom_line(aes(y = preco_medio_revenda, color = "Preço Nominal"), size = 1) +
+  geom_line(aes(y = preco_real, color = "Preço Real (Deflacionado)"), size = 1, linetype = "dashed") +
+  scale_color_manual(values = c("Preço Nominal" = "firebrick", "Preço Real (Deflacionado)" = "darkblue")) +
+  labs(
+    title = "Comparativo: Preço Nominal vs Preço Real da Gasolina",
+    subtitle = "Valores corrigidos pela inflação (IPCA) para a moeda atual",
+    x = "Ano",
+    y = "Preço (R$)",
+    color = "Legenda"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+
+A análise conjunta da Tabela 5 e do gráfico comparativo revela um padrão econômico fundamental: a ilusão monetária. Ao observar unicamente a curva do preço nominal , tem-se a percepção de que a gasolina apresentou um encarecimento agressivo e ininterrupto ao longo de toda a série histórica.
+
+Contudo, ao isolarmos o efeito corrosivo da inflação através da curva do preço real deflacionado, trazido para a capacidade aquisitiva do término da série, a realidade do mercado se mostra muito mais complexa:
+
+O Cenário de 2013: Em termos reais, o preço pago pelo consumidor de 2013 na bomba era equivalente ou até superior aos valores praticados em períodos mais recentes da história econômica. Isso demonstra que, descontada a inflação, o combustível já detinha um alto valor intrínseco.
+
+Já em 2021-2022: O distanciamento acentuado e a inclinação vertical das duas curvas entre os anos de 2021 e 2022 comprovam que o pico histórico de preços não foi mero reflexo da inflação inercial do país. Tratou-se de um choque econômico real e abrupto de custos, impulsionado pela Política de Paridade Internacional (PPI) adotada nas refinarias combinada à crise logística global e valorização internacional do barril de petróleo.
+
+A Deflação de 2023: O declínio acentuado verificado em 2023 evidencia o impacto real de intervenções regulatórias e fiscais (como o teto do ICMS sobre combustíveis), desinflando temporariamente as margens de preço reais na bomba.
+## 6. Taxas: Conceitos e Aplicações
+
+Tendo já calculado os números-índices e deflacionado a série de preços, retomamos agora um conceito mais fundamental que sustenta todos os cálculos anteriores: a **taxa**. Uma **razão** é a divisão entre duas grandezas quaisquer, não necessariamente da mesma natureza. Quando o denominador representa o total e o numerador uma parte desse total, a razão passa a ser chamada de **proporção**, sempre variando entre 0 e 1. Quando essa proporção é multiplicada por 100, obtemos uma **porcentagem**, expressa em "partes por cem". Já uma **taxa** expressa a variação de uma grandeza em relação a um referencial, normalmente o tempo, podendo ser uma **taxa de crescimento** ($g_t = \frac{x_t - x_{t-1}}{x_{t-1}} \times 100$) ou uma **taxa de incidência** (parte sobre o total em um dado período, como uma proporção expressa percentualmente).
+
+É fundamental distinguir três conceitos. A **variação absoluta** é a diferença simples entre dois valores, na mesma unidade da variável original ($\Delta x = x_t - x_{t-1}$); por exemplo, se a gasolina subiu de R\$ 4,28 para R\$ 5,75, a variação absoluta foi de R\$ 1,47. Já a **variação relativa** (ou taxa de crescimento) expressa essa mesma diferença como proporção do valor inicial, o que permite comparar mudanças entre grandezas de magnitudes distintas: o mesmo aumento de R\$ 1,47 representa uma taxa de crescimento de 34,35% sobre R\$ 4,28. Por fim, a **taxa de crescimento acumulada** (ou encadeada) soma o efeito de várias taxas de crescimento sucessivas ao longo de múltiplos períodos, e não pode ser obtida pela soma simples das taxas anuais — daí a necessidade dos elos relativos e do encadeamento de índices apresentados nas seções anteriores. Um aumento de 10% seguido de outro aumento de 10% não resulta em 20% acumulado, mas em 21% ($1,10 \times 1,10 = 1,21$), o que ilustra por que frases como "aumentou 10%" precisam sempre especificar a base de comparação.
+
+Nesta seção, calculamos três taxas distintas, cada uma ilustrando um desses conceitos com os dados já tratados ao longo do relatório.
+Nesta seção, calculamos três taxas distintas, cada uma ilustrando um desses conceitos com os dados já tratados ao longo do relatório.
+
+
+### 6.1. Taxa de Crescimento Anual do Preço da Gasolina
+
+Esta é uma **taxa de variação temporal**, com os seguintes elementos:
+
+- **Numerador:** diferença entre o preço médio do ano $t$ e o preço médio do ano $t-1$;
+- **Denominador:** preço médio do ano $t-1$;
+- **Período de referência:** ano civil (anual);
+- **Unidade:** porcentagem (%), aplicada sobre uma variável originalmente medida em R\$/L.
+
+```{r taxa_crescimento, echo=FALSE}
+taxa_crescimento_gasolina <- base_a %>%
+  group_by(Ano) %>%
+  summarise(preco_medio_anual = mean(preco_medio_revenda), .groups = "drop") %>%
+  arrange(Ano) %>%
+  mutate(
+    preco_anterior = lag(preco_medio_anual),
+    taxa_crescimento = (preco_medio_anual - preco_anterior) / preco_anterior * 100
+  )
+
+knitr::kable(
+  taxa_crescimento_gasolina %>% dplyr::select(Ano, `Preço Médio (R$)` = preco_medio_anual, `Taxa de Crescimento (%)` = taxa_crescimento),
+  digits = 2,
+  caption = "Tabela X: Taxa de Crescimento Anual do Preço Médio da Gasolina Comum"
+)
+
+ggplot(taxa_crescimento_gasolina, aes(x = Ano, y = taxa_crescimento)) +
+  geom_col(fill = ifelse(taxa_crescimento_gasolina$taxa_crescimento >= 0, "firebrick", "steelblue")) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  labs(
+    title = "Taxa de Crescimento Anual do Preço da Gasolina Comum",
+    x = "Ano", y = "Taxa de Crescimento (%)"
+  ) +
+  theme_minimal()
+```
+
+A taxa de crescimento anual evidencia que **2021 registrou o maior salto percentual da série**, com o preço médio crescendo de forma acentuada em relação a 2020. É importante destacar que essa taxa mede a **variação relativa**, não a variação absoluta: um aumento de R$ 1,00 representa uma taxa muito maior quando o preço de partida é R$ 3,00 do que quando é R$ 6,00. Em 2023, observa-se uma taxa negativa, indicando que, em termos absolutos, o preço médio anual recuou em relação a 2022 — uma desaceleração nominal que, como vimos na Seção 5, não significou necessariamente alívio real no poder de compra.
+
+### 6.2. Taxa de Participação do Óleo Diesel S10 na Cesta (Proporção)
+
+Diferentemente da taxa anterior, esta é uma **proporção**, calculada para um mesmo período, sem comparação temporal direta:
+
+- **Numerador:** valor gasto com Óleo Diesel S10 no ano $t$ ($v_{S10,t}$);
+- **Denominador:** valor total da cesta de combustíveis no mesmo ano $t$ ($\sum_i v_{i,t}$);
+- **Período de referência:** ano civil, comparado de forma transversal (não há defasagem temporal nesta proporção);
+- **Unidade:** porcentagem (%), representando a fração do orçamento total absorvida pelo Diesel S10.
+
+```{r taxa_participacao, echo=FALSE}
+taxa_participacao_s10 <- base_b %>%
+  group_by(Ano) %>%
+  mutate(valor_total_cesta = sum(v)) %>%
+  filter(produto == "OLEO DIESEL S10") %>%
+  mutate(participacao = (v / valor_total_cesta) * 100) %>%
+  dplyr::select(Ano, `Valor S10 (R$)` = v, `Valor Total da Cesta (R$)` = valor_total_cesta, `Participação (%)` = participacao)
+
+knitr::kable(taxa_participacao_s10, digits = 2, caption = "Tabela X: Taxa de Participação do Óleo Diesel S10 no Valor Total da Cesta")
+
+ggplot(taxa_participacao_s10, aes(x = Ano, y = `Participação (%)`, group = 1)) +
+  geom_line(color = "darkgreen", size = 1) +
+  geom_point(size = 2, color = "darkgreen") +
+  labs(
+    title = "Participação do Óleo Diesel S10 no Valor Total da Cesta",
+    x = "Ano", y = "Participação (%)"
+  ) +
+  theme_minimal()
+```
+
+A taxa de participação revela que o Óleo Diesel S10 **aumenta seu peso relativo na cesta ano a ano**, refletindo a transição operacional simulada da frota (redução do diesel comum em favor do S10). Diferentemente da taxa de crescimento da Seção 6.1, que compara o mesmo item em dois períodos distintos, esta proporção compara itens diferentes dentro do mesmo período, evidenciando a importância relativa (peso) de cada combustível no orçamento total — um conceito central para entender por que os índices ponderados (Seção 4.2) atribuem importâncias distintas a cada produto.
+
+### 6.3. Taxa de Inflação Anual (IPCA)
+
+### 6.3. Taxa de Inflação Anual (IPCA)
+
+Esta é outra **taxa de variação temporal (taxa de crescimento)**, mas aplicada a um indicador oficial em vez de um preço de mercado:
+
+- **Numerador:** diferença entre o número-índice acumulado do IPCA no fim do ano $t$ e o número-índice no fim do ano $t-1$;
+- **Denominador:** número-índice acumulado do IPCA no fim do ano $t-1$;
+- **Período de referência:** ano civil (anual);
+- **Unidade:** porcentagem (%), aplicada sobre um número-índice adimensional (sem unidade de medida própria, pois é uma razão entre índices).
+
+```{r taxa_inflacao, echo=FALSE}
+taxa_inflacao_ipca <- base_c_ipca %>%
+  group_by(Ano) %>%
+  summarise(indice_fim_ano = last(numero_indice), .groups = "drop") %>%
+  arrange(Ano) %>%
+  mutate(
+    indice_anterior = lag(indice_fim_ano),
+    taxa_inflacao_anual = (indice_fim_ano - indice_anterior) / indice_anterior * 100
+  )
+
+knitr::kable(
+  taxa_inflacao_ipca %>% dplyr::select(Ano, `Taxa de Inflação Anual (%)` = taxa_inflacao_anual),
+  digits = 2,
+  caption = "Tabela X: Taxa de Inflação Anual (IPCA Acumulado)"
+)
+
+ggplot(taxa_inflacao_ipca, aes(x = Ano, y = taxa_inflacao_anual)) +
+  geom_col(fill = "darkorange") +
+  labs(
+    title = "Taxa de Inflação Anual Medida pelo IPCA",
+    x = "Ano", y = "Taxa de Inflação (%)"
+  ) +
+  theme_minimal()
+```
+
+## Considerações Finais
+
+A guiar o desenvolvimento deste estudo, estabeleceu-se a pergunta norteadora: *"Até que ponto as flutuações e os picos observados no preço da gasolina comum na região Sudeste, entre os anos de 2013 e 2026, refletem um aumento real de valor ou são apenas reflexos do processo inflacionário?"*. Ao concluir as análises estatísticas e computacionais, é possível responder a esta questão com clareza. 
+
+O que observamos é que a trajetória do preço da gasolina ao longo da década resulta de duas forças diferentes atuando ao mesmo tempo. A subida constante e gradual do preço nominal está relacionada, em grande parte, à própria perda de valor da moeda, medida pelo IPCA. Já os picos mais bruscos, principalmente em 2021 e 2022, mostram um aumento que foi além da inflação, ou seja, um encarecimento real do combustível, que afetou diretamente o poder de compra das famílias e os custos de quem depende do transporte no dia a dia.
+
+A partir do que foi estudado, conseguimos chegar a quatro conclusões principais:
+
+1. A ilusão monetária ficou evidente. Quando analisamos apenas os valores nominais, sem considerar a inflação, a impressão que se tem dos preços é distorcida. Foi só ao deflacionar a série que percebemos que o "pico" de 2022, embora parecesse o maior valor nominal da história, não correspondia necessariamente ao maior impacto real no bolso do consumidor.
+
+2. O efeito de substituição apareceu nos números. Ao comparar o Índice de Laspeyres (que usa os pesos de consumo de 2020) com o Índice de Paasche (que usa os pesos atuais), foi possível visualizar, na prática, algo que normalmente só vemos na teoria: quando o preço sobe muito, as pessoas (ou, no caso deste trabalho, a frota de uma empresa fictícia) tendem a mudar de combustível para gastar menos, migrando para opções como etanol ou diesel S10. O Índice de Fisher ajudou a equilibrar essas duas visões, servindo como uma média mais justa entre os dois extremos.
+
+3. O tema tem relevância social real. Segundo a Pesquisa de Orçamentos Familiares (POF) do IBGE, o grupo "Transportes" é o segundo maior gasto das famílias brasileiras, representando 18,1% do orçamento. Isso mostra que entender esse tipo de variação de preço não é só um exercício acadêmico, mas algo que afeta diretamente o bolso das pessoas.
+
+
+Como em qualquer trabalho estatístico, este projeto também tem suas limitações. A primeira é que usamos preços médios para toda a região Sudeste, o que pode esconder diferenças importantes entre estados, como variações de ICMS entre São Paulo, Rio de Janeiro e Minas Gerais. A segunda limitação é que a cesta de produtos usada para calcular os índices ponderados (Base B) foi baseada numa simulação criada por nós, representando uma empresa de transporte fictícia entre 2020 e 2023. Apesar de ser uma forma didática e válida de aplicar os conceitos de Laspeyres e Paasche, essa simulação não tem a mesma representatividade que os dados reais coletados pela POF, que considera o consumo de milhões de famílias brasileiras.
+
+De forma geral, este trabalho nos ajudou a entender, na prática, por que os números-índices são tão importantes para analisar dados econômicos ao longo do tempo. Mais do que isso, reforçou um aprendizado importante: antes de tirar conclusões sobre preços e custos, é preciso primeiro entender quanto o dinheiro realmente vale em cada momento.
+
+## Declaração de Autoria e Uso de Inteligência Artificial
+
+Declaramos para os devidos fins acadêmicos que o presente trabalho é de autoria conjunta de **Diogo Henrique, Lívia Abreu e Gabriel Resende**. Toda a estruturação metodológica, escolha da cesta de consumo, análise de dados e interpretação das conclusões econômicas aqui apresentadas refletem o nosso próprio entendimento e esforço intelectual da disciplina. 
+
+Declaramos, em conformidade com as diretrizes de integridade acadêmica, que ferramentas de Inteligência Artificial foram utilizadas ao longo deste projeto estritamente como assistentes tecnológicos. O uso limitou-se às seguintes funções:
+* Otimização e depuração de trechos de código em R (como a correção de erros de diretórios e ajustes visuais da biblioteca *ggplot2*);
+* Auxílio na revisão gramatical e formatação de marcação no padrão *R Markdown* (tabelas e equações LaTeX).
+
+Nenhuma ferramenta de IA foi utilizada para gerar conclusões analíticas de forma autônoma ou para deturpar os dados das fontes oficiais (ANP e IBGE). A equipe assume total responsabilidade pela veracidade, cálculos e interpretações contidas neste relatório.
