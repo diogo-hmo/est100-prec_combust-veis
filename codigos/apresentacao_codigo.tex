@@ -1,0 +1,292 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs} 
+\usepackage{amsmath}
+
+\usetheme{Warsaw} 
+
+\title{Análise do Preço de Combustíveis}
+\subtitle{Dinâmica Histórica, Inflação e Números-Índices no Sudeste}
+\author{Diogo Henrique, Lívia Abreu, Gabriel Resende}
+\institute{Universidade Federal de Viçosa \\ EST 100 -- Estatística Descritiva e Exploratória}
+\date{30 de Junho de 2026}
+
+\begin{document}
+
+
+\frame{\titlepage}
+
+
+\begin{frame}{Introdução e Relevância Social}
+\begin{itemize}
+    \item Combustíveis influenciam diretamente:
+    \begin{itemize}
+        \item O custo de vida da população;
+        \item O setor de transporte e logística;
+        \item A inflação estrutural do país.
+    \end{itemize}
+    \vspace{0.3cm}
+    \item \textbf{Ancoragem na POF (IBGE):}
+    \begin{itemize}
+        \item O grupo \textbf{Transportes} representa \textbf{18,1\%} do orçamento familiar.
+        \item É a \textbf{segunda maior despesa} do orçamento doméstico nacional.
+    \end{itemize}
+    \vspace{0.3cm}
+    \item \textbf{Objetivo do estudo:}
+    \begin{itemize}
+        \item Analisar a evolução do preço da gasolina no Sudeste (2013--2026);
+        \item Isolar o aumento real de valor frente ao processo inflacionário.
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Pergunta Norteadora}
+\begin{block}{O Problema Central do Relatório}
+    \vspace{0.2cm}
+    \centering
+    \large\itshape
+    "Até que ponto as flutuações e os picos observados no preço da gasolina comum na região Sudeste, entre os anos de 2013 e 2026, refletem um aumento real de valor ou são apenas reflexos do processo inflacionário?"
+    \vspace{0.2cm}
+\end{block}
+\end{frame}
+\begin{frame}{Metodologia e Fontes de Dados}
+\begin{columns}
+\column{0.5\textwidth}
+    \begin{block}{Base A (Preços Mercado)}
+        \begin{itemize}
+            \item \textbf{Fonte:} ANP
+            \item \textbf{Produto:} Gasolina Comum
+            \item \textbf{Recorte:} Região Sudeste
+            \item \textbf{Período:} 2013 -- 2026
+            \item \textbf{Frequência:} Mensal
+        \end{itemize}
+    \end{block}
+
+\column{0.5\textwidth}
+    \begin{block}{Base B (Cesta Ponderada)}
+        \begin{itemize}
+            \item \textbf{Simulação:} Frota de Transportes
+            \item \textbf{Período:} 2020 -- 2023
+            \item \textbf{Índices:} Laspeyres, Paasche e Fisher
+            \item \textbf{Deflator:} IPCA (IBGE)
+        \end{itemize}
+    \end{block}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Base A -- Preço da Gasolina (ANP)}
+\textbf{Estatísticas Descritivas do Preço Nominal (R\$/L)}
+\small
+\begin{table}
+\centering
+\begin{tabular}{ccccccc}
+\toprule
+\textbf{Mín} & \textbf{Q1} & \textbf{Med} & \textbf{Média} & \textbf{Q3} & \textbf{Máx} & \textbf{DP}\\
+\midrule
+2,73 & 3,59 & 4,40 & 4,57 & 5,65 & 7,24 & 1,23\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Assimetria à Direita:} Média ($4,57$) $>$ Mediana ($4,40$), indicando uma distribuição puxada pelos preços extremos recentes.
+    \item \textbf{Dispersão:} 25\% dos meses com preços abaixo de \textbf{R\$ 3,59/L} e 25\% com preços acima de \textbf{R\$ 5,65/L}.
+    \item \textbf{Volatilidade:} Desvio-padrão de \textbf{1,23 R\$/L} reflete a alta instabilidade do setor.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Distribuição e Dispersão dos Preços}
+\begin{columns}[t] 
+\column{0.48\textwidth}
+    \centering
+    \textbf{\footnotesize Histograma}
+    
+    
+    \includegraphics[width=\linewidth, height=0.7\textheight, keepaspectratio]{histogramabaseA.png}
+    
+    \begin{itemize}
+        \item \scriptsize \textbf{Concentração:} Faixa de R\$ 3 a R\$ 5.
+        \item \scriptsize \textbf{Assimetria:} Cauda à direita confirma os picos recentes.
+    \end{itemize}
+
+\column{0.48\textwidth}
+    \centering
+    \textbf{\footnotesize Boxplot Anual}
+    
+    \includegraphics[width=\linewidth, height=0.7\textheight, keepaspectratio]{boxplotebaseA.png}
+    
+    \begin{itemize}
+        \item \scriptsize \textbf{Volatilidade:} 2021--22 com maior dispersão.
+        \item \scriptsize \textbf{Tendência:} Alta da mediana com estabilidade pós-2023.
+    \end{itemize}
+\end{columns}
+\end{frame}
+
+% Slide 5: SUBSTITUIÇÃO DA TAXA DE CRESCIMENTO PELA TAXA DE PARTICIPAÇÃO
+\begin{frame}{Taxa de Participação do Diesel S10 na Cesta}
+\begin{block}{Definição da Proporção}
+    \scriptsize
+    \textbf{Numerador:} Valor total gasto com Óleo Diesel S10 no ano $t$ ($v_{S10,t}$) \\
+    \textbf{Denominador:} Valor total da cesta de combustíveis no mesmo ano $t$ ($\sum v_{i,t}$)
+\end{block}
+
+\begin{table}
+\centering
+\small
+\begin{tabular}{cccc}
+\toprule
+\textbf{Ano} & \textbf{Valor S10 (R\$)} & \textbf{Valor Total Cesta (R\$)} & \textbf{Participação (\%)} \\
+\midrule
+2020 & 7.040,00 & 29.884,42 & \textbf{23,56\%} \\
+2021 & 10.120,00 & 39.141,42 & 25,85\% \\
+2022 & 16.575,00 & 48.660,93 & 34,06\% \\
+2023 & 16.296,00 & 43.796,63 & \textbf{37,21\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Significado Económico:} Diferente de uma taxa de variação no tempo, esta proporção mostra o \textbf{peso relativo} do produto no orçamento.
+    \item \textbf{Transição Operacional:} O aumento de 23\% para 37\% reflete a migração da frota para combustíveis menos poluentes.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Base B -- Estratégia de Modelagem da Cesta}
+\begin{block}{Abordagem Corporativa}
+    Para calcular índices ponderados, estruturamos a \textbf{Base B} simulando o consumo anual de uma \textbf{empresa de transportes} no Sudeste (2020--2023).
+\end{block}
+\vspace{0.2cm}
+\begin{itemize}
+    \item \textbf{Estrutura Multivariada:} Relaciona preços ($p$) e quantidades ($q$) de 6 combustíveis distintos simultaneamente.
+    \item \textbf{Quantidades Dinâmicas:} Os pesos não são estáticos; acompanham a mudança de perfil de consumo da frota.
+    \item \textbf{Finalidade:} Isolar o efeito preço através das fórmulas de \textbf{Laspeyres, Paasche e Fisher}.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{7. Índices Ponderados e Efeito Substituição}
+\begin{table}
+\centering
+\caption{Índices de Preços (Base: 2020 = 100)}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Ano} & \textbf{Laspeyres} & \textbf{Paasche} & \textbf{Fisher} \\
+\midrule
+2020 & 100,00 & 100,00 & 100,00 \\
+2021 & 132,42 & 132,51 & 132,46 \\
+\textbf{2022} & \textbf{165,89} & \textbf{166,62} & \textbf{166,25} \\
+2023 & 148,87 & 149,93 & 149,40 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Laspeyres:} Superestima ao fixar o consumo de 2020.
+    \item \textbf{Paasche:} Capta a adaptação da frota aos novos volumes atuais.
+    \item \textbf{Fisher:} Média geométrica que neutraliza os vieses, indicando encarecimento consolidado de \textbf{66,25\%} no pico de 2022.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Deflacionamento e Taxa de Inflação }
+\begin{columns}
+\column{0.55\textwidth}
+    \begin{block}{Inflação Anual (IBGE)}
+        \scriptsize
+        $\text{Taxa} = \frac{IPCA_t - IPCA_{t-1}}{IPCA_{t-1}} \times 100$
+    \end{block}
+    \begin{itemize}
+        \item Pico de inflação oficial em \textbf{2021 7,46\%}.
+        \item O deflacionamento converte o valor nominal em \textbf{valor real}, eliminando a "ilusão monetária".
+        \item Preços trazidos para a moeda de \textbf{Junho de 2026}.
+    \end{itemize}
+
+\column{0.45\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{inflacaoanual.png}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Preço Nominal vs. Preço Real}
+    \begin{block}{Fórmula de Deflacionamento}
+        Para eliminar a inflação e trazer os preços para a moeda de \textbf{Junho de 2026}:
+        \centering
+        \vspace{0.1cm}
+        $Preço~Real_t = Preço~Nominal_t \times \frac{IPCA_{Jun/2026}}{IPCA_t}$
+    \end{block}
+
+    \begin{columns}
+        \column{0.45\textwidth}
+        \centering
+        \scriptsize
+        \textbf{Evolução Anual}
+        \begin{table}
+        \centering
+        \begin{tabular}{lcc}
+        \toprule
+        \textbf{Ano} & \textbf{Nominal (R\$)} & \textbf{Real (R\$)} \\
+        \midrule
+        2013 & 2,82 & 4,72 \\
+        2015 & 3,31 & 4,92 \\
+        2018 & 4,38 & 5,79 \\
+        \textbf{2021} & \textbf{5,66} & \textbf{6,92} \\
+        2022 & 5,95 & 6,91 \\
+        2024 & 5,81 & 6,24 \\
+        \textbf{2026} & \textbf{6,37} & \textbf{6,46} \\
+        \bottomrule
+        \end{tabular}
+        \end{table}
+
+        \column{0.55\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{comparativo_nominal_real.png} 
+        \begin{itemize}
+            \item \scriptsize \textbf{2013:} O preço era baixo, mas o valor real era similar ao de 2014.
+            \item \scriptsize \textbf{Gap Real:} O distanciamento das curvas em 2021-2022 prova que o choque foi real, não apenas inercial.
+        \end{itemize}
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}{Considerações Finais}
+\begin{itemize}
+    \item \textbf{Dinâmica dos Preços:} A evolução do preço da gasolina foi resultado da combinação entre a inflação e choques económicos reais.
+    
+    \vspace{0.3cm}
+    
+    \item \textbf{Nominal vs. Real:} O deflacionamento da série provou que nem todo aumento nominal representa um aumento real no custo do combustível.
+    
+    \vspace{0.3cm}
+    
+    \item \textbf{Impacto (2021--2022):} Foi o período mais crítico do estudo, caracterizado por um forte encarecimento real bem acima da inflação vigente.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Limitações do Estudo}
+\begin{alertblock}{Restrições Estatísticas}
+\begin{itemize}
+    \item \textbf{Médias Regionais:} A agregação no Sudeste suaviza diferenças críticas de ICMS entre os estados (SP, RJ, MG).
+    \vspace{0.3cm}
+    \item \textbf{Proxy de Consumo:} A Base B é didática e corporativa; não substitui a complexidade censitária da POF/IBGE para todas as famílias.
+\end{itemize}
+\end{alertblock}
+\end{frame}
+
+
+\begin{frame}
+\centering
+\LARGE \textbf{Obrigado!} \\
+\vspace{0.5cm}
+\large Perguntas e Discussão \\
+\vspace{1cm}
+\scriptsize \text{UFV -- Departamento de Estatística}
+\end{frame}
+
+\end{document}

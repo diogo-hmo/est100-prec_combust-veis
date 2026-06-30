@@ -27,10 +27,12 @@ anp_bruta <- readr::read_csv2("../dados/brutos/preco_regioes_bruto.csv", skip = 
 ipca_bruto <- readr::read_csv2("../dados/brutos/ipca_bruto.csv", skip = 1, locale = locale(encoding = "latin1"), show_col_types = FALSE) %>% 
   clean_names()
 ```
+
+
 ## Introdução
 O comportamento dos preços dos combustíveis no Brasil é um tema central nas discussões económicas e sociais, dado o seu impacto direto no custo de vida da população, nos custos de transporte e na inflação estrutural do país. Compreender a dinâmica histórica desses preços vai além de observar os valores nominais exibidos nos postos de combustíveis; exige uma análise rigorosa que separe o aumento real do valor do produto da perda geral do poder de compra da moeda ao longo do tempo.
 
-A relevância deste estudo é corroborada pela Pesquisa de Orçamentos Familiares (POF) do IBGE. Segundo a última edição da pesquisa, o grupo 'Transportes' consome cerca de 18,1% do orçamento das famílias brasileiras, sendo a segunda maior despesa do país. Portanto, a escalada nos preços dos combustíveis não afeta apenas a estrutura de custos das empresas de logística — como será modelado neste estudo através dos índices ponderados —, mas corrói de forma direta e severa o poder de compra da população, justificando a necessidade de um deflacionamento rigoroso da série histórica.
+A relevância deste estudo é corroborada pela Pesquisa de Orçamentos Familiares (POF) do IBGE. Segundo a última edição da pesquisa, o grupo 'Transportes' consome cerca de 18,1% do orçamento das famílias brasileiras, sendo a segunda maior despesa do país. Portanto, a escalada nos preços dos combustíveis não afeta apenas a estrutura de custos das empresas de logística como será modelado neste estudo através dos índices ponderados, mas corrói de forma direta e severa o poder de compra da população, justificando a necessidade de um deflacionamento rigoroso da série histórica.
 
 Este relatório dedica-se a estudar a evolução do preço da gasolina comum na região Sudeste do Brasil ao longo de uma série histórica que abrange mais de uma década. Para que a análise seja estatisticamente válida e economicamente interpretável, o estudo divide-se no levantamento de duas bases principais de dados: a variação dos preços nominais captados no mercado (Base A) e os índices de inflação oficial do país mensurados pelo IPCA (Base B). O cruzamento destas duas forças permitirá identificar os momentos de encarecimento real e as janelas de estabilização do combustível.
 
@@ -41,7 +43,7 @@ Para guiar as análises quantitativas e as interpretações económicas deste tr
 
 
 
-
+\n
 ### Apresentação da Base A (Série Temporal de Preços)
 A tabela abaixo apresenta os dados iniciais da Base A, estruturada para a análise exploratória deste relatório. O objetivo desta seção é isolar o comportamento do mercado de combustíveis em um recorte específico para garantir a consistência do estudo.
 
@@ -81,7 +83,7 @@ estatisticas <- base_a %>%
     `Desvio Padrão` = round(sd(preco_medio_revenda), 2)
   )
 
-# Tabela de estatísticas
+
 knitr::kable(estatisticas, digits = 2, caption = "Tabela das Estatísticas Descritivas do Preço da Gasolina (R$/L)")
 ```
 Observando as medidas de posição, nota-se que 50% dos meses analisados registraram um preço de gasolina de até R$ 4,40 (Mediana), enquanto a Média histórica posicionou-se em `r round(mean(base_a$preco_medio_revenda), 2)` R$/L. O fato de a média ser maior que a mediana indica uma distribuição assimétrica à direita, puxada pelos preços extremos (outliers) observados recentemente.
@@ -114,6 +116,7 @@ g2 <- ggplot(base_a, aes(x = as.factor(Ano), y = preco_medio_revenda)) +
 # Plotando Histograma e Boxplot lado a lado
 grid.arrange(g1, g2, ncol = 2)
 ```
+
 **Interpretação das Visualizações Gráficas:**
 
 O **histograma** apresenta a distribuição de frequências dos preços nominais da gasolina ao longo de todo o período analisado. Nota-se que a maior concentração de meses ocorre nas faixas de preços mais baixas, o que reflete os anos iniciais da série, caracterizados por uma maior estabilidade e controle tarifário. No entanto, a presença de uma cauda alongada à direita no gráfico ilustra os choques inflacionários recentes, que empurraram os preços para valores extremos.
@@ -199,15 +202,15 @@ A tabela apresenta a matriz de preços médios anuais ($p$), as quantidades simu
 
 
 
-# 4. Números-Índices
+#  Números-Índices
 
 Os números-índices são medidas estatísticas que permitem comparar a variação de uma ou mais grandezas  ao longo do tempo, em relação a um período base.
 
-### 4.1. Relativos Simples de Preço 
+###  Relativos Simples de Preço 
 
 O relativo simples de preço mede a variação isolada de um único produto, sem considerar o seu peso numa cesta. A fórmula é dada por $I_t = \frac{p_t}{p_0} \times 100$, onde $p_0$ é o preço no período base. O produto escolhido para ilustrar o cálculo simples foi a **Gasolina Comum**.
 
-### 4.1. Relativos Simples e Elos Relativos (Base Móvel)
+###  Relativos Simples e Elos Relativos (Base Móvel)
 
 O relativo simples de preço mede a variação isolada de um único produto. Para uma análise completa, calculamos duas óticas: a **Base Fixa** ($I_t = \frac{p_t}{p_0} \times 100$), que compara todos os anos com o ano-base (2020), e a **Base Móvel ou Elos Relativos** ($I_t = \frac{p_t}{p_{t-1}} \times 100$), que encadeia os índices comparando cada ano com o ano imediatamente anterior, evidenciando a aceleração ou desaceleração dos preços a curto prazo. O produto escolhido para ilustrar o cálculo simples foi a **Gasolina Comum**.
 
@@ -233,7 +236,7 @@ base_simples <- base_b %>%
     `Base Móvel (Ano Anterior=100)` = Elo_Relativo_Base_Movel
   )
 
-knitr::kable(base_simples, digits = 2, caption = "Tabela 3: Relativos Simples e Elos Relativos de Preço - Gasolina Comum")
+knitr::kable(base_simples, digits = 2, caption = " Relativos Simples e Elos Relativos de Preço - Gasolina Comum")
 ```
 
 Fixando o ano de 2020 como base (Índice = 100), observamos o crescimento nominal 
@@ -246,7 +249,7 @@ encerrado o período **25,70%** mais caro do que no ano base.
 
 Por outro lado, a coluna de Base Móvel  permite-nos perceber o ritmo anual das mudanças (o ano de 2020 apresenta NA - Não Disponível - pois não há dados de 2019 na nossa cesta para efetuar a divisão). Observando a base móvel, notamos que o grande choque ocorreu de facto em 2021, quando a gasolina encareceu 34,35% num único ano (índice 134,35). De 2021 para 2022, embora o preço tenha atingido o seu valor máximo histórico, a taxa de crescimento anual desacelerou, subindo apenas cerca de 5,39% face ao ano anterior (elo relativo de 105,39). Por fim, o elo de 88,78 em 2023 evidencia a deflação nominal daquele ano, significando que o preço caiu cerca de 11,22% face a 2022.
 
-### 4.2. Índices Ponderados: Laspeyres, Paasche e Fisher:
+###  Índices Ponderados: Laspeyres, Paasche e Fisher:
   Quando analisamos uma cesta de produtos, como a frota da nossa empresa de transportes, os relativos simples são insuficientes, pois não captam a importância (peso) de cada combustível no orçamento total. Para isso, recorremos aos Índices Agregados Ponderados.Índice de Laspeyres ($L$): Utiliza as quantidades do período base ($q_0$) como pesos.Índice de Paasche ($P$): Utiliza as quantidades do período atual ($q_t$) como pesos.Índice Ideal de Fisher ($F$): É a média geométrica entre Laspeyres e Paasche, eliminando o viés inerente a cada um.
   
 ```{r relativos_ponderados, echo=FALSE}
@@ -272,7 +275,7 @@ indices_agregados <- base_b %>%
   ) %>%
   dplyr::select(Ano, Laspeyres, Paasche, Fisher)
 
-knitr::kable(indices_agregados, digits = 2, caption = "Tabela 4: Índices Ponderados de Preços (Base 2020 = 100)")
+knitr::kable(indices_agregados, digits = 2, caption = "Índices Ponderados de Preços (Base 2020 = 100)")
 ```
 1. **Laspeyres:** Em 2021, o índice de Laspeyres marcou **132,42**. Isto indica 
 que, se a empresa tivesse mantido exatamente o mesmo perfil de consumo que praticava em 2020, o seu custo com 
@@ -294,8 +297,9 @@ de **166,25** em 2022 e encerrou a série em 2023 marcando **149,40**. Isso
 evidencia, de forma consolidada e livre de viés, que a empresa suportou um 
 encarecimento real de **49,40%** para operar a sua frota em relação ao ano base 
 de 2020.
-s
-## 5. Deflacionamento e Poder Aquisitivo (Base C)
+
+
+## Deflacionamento e Poder Aquisitivo
 
 Na economia, a ilusão monetária ocorre quando observamos apenas o crescimento dos valores absolutos sem considerar a corrosão do poder de compra da moeda. Para responder à pergunta central deste projeto, é imperativo transformar a série de preços nominais (Base A) numa série de preços reais. 
 
@@ -352,7 +356,7 @@ base_deflacionada <- base_deflacionada %>%
     preco_real = preco_medio_revenda * (indice_final / numero_indice)
   )
 
-# 4. Tabela Comparativa Anual (Média)
+
 tabela_comparativa <- base_deflacionada %>%
   group_by(Ano) %>%
   summarise(
@@ -360,9 +364,9 @@ tabela_comparativa <- base_deflacionada %>%
     `Preço Real Deflacionado (R$)` = round(mean(preco_real), 2)
   )
 
-knitr::kable(tabela_comparativa, caption = "Tabela 5: Evolução Anual - Preço Nominal vs. Preço Real (Moeda de Jun/2026)")
+knitr::kable(tabela_comparativa, caption = "Evolução Anual - Preço Nominal vs. Preço Real (Moeda de Jun/2026)")
 
-# 5. Gráfico Final
+
 ggplot(base_deflacionada, aes(x = Data)) +
   geom_line(aes(y = preco_medio_revenda, color = "Preço Nominal"), size = 1) +
   geom_line(aes(y = preco_real, color = "Preço Real (Deflacionado)"), size = 1, linetype = "dashed") +
@@ -378,7 +382,7 @@ ggplot(base_deflacionada, aes(x = Data)) +
   theme(legend.position = "bottom")
 ```
 
-A análise conjunta da Tabela 5 e do gráfico comparativo revela um padrão econômico fundamental: a ilusão monetária. Ao observar unicamente a curva do preço nominal , tem-se a percepção de que a gasolina apresentou um encarecimento agressivo e ininterrupto ao longo de toda a série histórica.
+A análise conjunta da Tabela e do gráfico comparativo revela um padrão econômico fundamental: a ilusão monetária. Ao observar unicamente a curva do preço nominal , tem-se a percepção de que a gasolina apresentou um encarecimento agressivo e ininterrupto ao longo de toda a série histórica.
 
 Contudo, ao isolarmos o efeito corrosivo da inflação através da curva do preço real deflacionado, trazido para a capacidade aquisitiva do término da série, a realidade do mercado se mostra muito mais complexa:
 
@@ -387,17 +391,18 @@ O Cenário de 2013: Em termos reais, o preço pago pelo consumidor de 2013 na bo
 Já em 2021-2022: O distanciamento acentuado e a inclinação vertical das duas curvas entre os anos de 2021 e 2022 comprovam que o pico histórico de preços não foi mero reflexo da inflação inercial do país. Tratou-se de um choque econômico real e abrupto de custos, impulsionado pela Política de Paridade Internacional (PPI) adotada nas refinarias combinada à crise logística global e valorização internacional do barril de petróleo.
 
 A Deflação de 2023: O declínio acentuado verificado em 2023 evidencia o impacto real de intervenções regulatórias e fiscais (como o teto do ICMS sobre combustíveis), desinflando temporariamente as margens de preço reais na bomba.
-## 6. Taxas: Conceitos e Aplicações
+
+## Taxas:
 
 Tendo já calculado os números-índices e deflacionado a série de preços, retomamos agora um conceito mais fundamental que sustenta todos os cálculos anteriores: a **taxa**. Uma **razão** é a divisão entre duas grandezas quaisquer, não necessariamente da mesma natureza. Quando o denominador representa o total e o numerador uma parte desse total, a razão passa a ser chamada de **proporção**, sempre variando entre 0 e 1. Quando essa proporção é multiplicada por 100, obtemos uma **porcentagem**, expressa em "partes por cem". Já uma **taxa** expressa a variação de uma grandeza em relação a um referencial, normalmente o tempo, podendo ser uma **taxa de crescimento** ($g_t = \frac{x_t - x_{t-1}}{x_{t-1}} \times 100$) ou uma **taxa de incidência** (parte sobre o total em um dado período, como uma proporção expressa percentualmente).
 
-É fundamental distinguir três conceitos. A **variação absoluta** é a diferença simples entre dois valores, na mesma unidade da variável original ($\Delta x = x_t - x_{t-1}$); por exemplo, se a gasolina subiu de R\$ 4,28 para R\$ 5,75, a variação absoluta foi de R\$ 1,47. Já a **variação relativa** (ou taxa de crescimento) expressa essa mesma diferença como proporção do valor inicial, o que permite comparar mudanças entre grandezas de magnitudes distintas: o mesmo aumento de R\$ 1,47 representa uma taxa de crescimento de 34,35% sobre R\$ 4,28. Por fim, a **taxa de crescimento acumulada** (ou encadeada) soma o efeito de várias taxas de crescimento sucessivas ao longo de múltiplos períodos, e não pode ser obtida pela soma simples das taxas anuais — daí a necessidade dos elos relativos e do encadeamento de índices apresentados nas seções anteriores. Um aumento de 10% seguido de outro aumento de 10% não resulta em 20% acumulado, mas em 21% ($1,10 \times 1,10 = 1,21$), o que ilustra por que frases como "aumentou 10%" precisam sempre especificar a base de comparação.
+É fundamental distinguir três conceitos. A **variação absoluta** é a diferença simples entre dois valores, na mesma unidade da variável original ($\Delta x = x_t - x_{t-1}$); por exemplo, se a gasolina subiu de R\$ 4,28 para R\$ 5,75, a variação absoluta foi de R\$ 1,47. Já a **variação relativa** (ou taxa de crescimento) expressa essa mesma diferença como proporção do valor inicial, o que permite comparar mudanças entre grandezas de magnitudes distintas: o mesmo aumento de R\$ 1,47 representa uma taxa de crescimento de 34,35% sobre R\$ 4,28. Por fim, a **taxa de crescimento acumulada** (ou encadeada) soma o efeito de várias taxas de crescimento sucessivas ao longo de múltiplos períodos, e não pode ser obtida pela soma simples das taxas anuais  daí a necessidade dos elos relativos e do encadeamento de índices apresentados nas seções anteriores. Um aumento de 10% seguido de outro aumento de 10% não resulta em 20% acumulado, mas em 21% ($1,10 \times 1,10 = 1,21$), o que ilustra por que frases como "aumentou 10%" precisam sempre especificar a base de comparação.
 
 Nesta seção, calculamos três taxas distintas, cada uma ilustrando um desses conceitos com os dados já tratados ao longo do relatório.
 Nesta seção, calculamos três taxas distintas, cada uma ilustrando um desses conceitos com os dados já tratados ao longo do relatório.
 
 
-### 6.1. Taxa de Crescimento Anual do Preço da Gasolina
+### 1. Taxa de Crescimento Anual do Preço da Gasolina
 
 Esta é uma **taxa de variação temporal**, com os seguintes elementos:
 
@@ -419,7 +424,7 @@ taxa_crescimento_gasolina <- base_a %>%
 knitr::kable(
   taxa_crescimento_gasolina %>% dplyr::select(Ano, `Preço Médio (R$)` = preco_medio_anual, `Taxa de Crescimento (%)` = taxa_crescimento),
   digits = 2,
-  caption = "Tabela X: Taxa de Crescimento Anual do Preço Médio da Gasolina Comum"
+  caption = "Taxa de Crescimento Anual do Preço Médio da Gasolina Comum"
 )
 
 ggplot(taxa_crescimento_gasolina, aes(x = Ano, y = taxa_crescimento)) +
@@ -432,9 +437,9 @@ ggplot(taxa_crescimento_gasolina, aes(x = Ano, y = taxa_crescimento)) +
   theme_minimal()
 ```
 
-A taxa de crescimento anual evidencia que **2021 registrou o maior salto percentual da série**, com o preço médio crescendo de forma acentuada em relação a 2020. É importante destacar que essa taxa mede a **variação relativa**, não a variação absoluta: um aumento de R$ 1,00 representa uma taxa muito maior quando o preço de partida é R$ 3,00 do que quando é R$ 6,00. Em 2023, observa-se uma taxa negativa, indicando que, em termos absolutos, o preço médio anual recuou em relação a 2022 — uma desaceleração nominal que, como vimos na Seção 5, não significou necessariamente alívio real no poder de compra.
+A taxa de crescimento anual evidencia que **2021 registrou o maior salto percentual da série**, com o preço médio crescendo de forma acentuada em relação a 2020. É importante destacar que essa taxa mede a **variação relativa**, não a variação absoluta: um aumento de R$ 1,00 representa uma taxa muito maior quando o preço de partida é R$ 3,00 do que quando é R$ 6,00. Em 2023, observa-se uma taxa negativa, indicando que, em termos absolutos, o preço médio anual recuou em relação a 2022  uma desaceleração nominal que, como vimos na anteriormente, não significou necessariamente alívio real no poder de compra.
 
-### 6.2. Taxa de Participação do Óleo Diesel S10 na Cesta (Proporção)
+### 2. Taxa de Participação do Óleo Diesel S10 na Cesta (Proporção)
 
 Diferentemente da taxa anterior, esta é uma **proporção**, calculada para um mesmo período, sem comparação temporal direta:
 
@@ -451,7 +456,7 @@ taxa_participacao_s10 <- base_b %>%
   mutate(participacao = (v / valor_total_cesta) * 100) %>%
   dplyr::select(Ano, `Valor S10 (R$)` = v, `Valor Total da Cesta (R$)` = valor_total_cesta, `Participação (%)` = participacao)
 
-knitr::kable(taxa_participacao_s10, digits = 2, caption = "Tabela X: Taxa de Participação do Óleo Diesel S10 no Valor Total da Cesta")
+knitr::kable(taxa_participacao_s10, digits = 2, caption = "Taxa de Participação do Óleo Diesel S10 no Valor Total da Cesta")
 
 ggplot(taxa_participacao_s10, aes(x = Ano, y = `Participação (%)`, group = 1)) +
   geom_line(color = "darkgreen", size = 1) +
@@ -463,11 +468,9 @@ ggplot(taxa_participacao_s10, aes(x = Ano, y = `Participação (%)`, group = 1))
   theme_minimal()
 ```
 
-A taxa de participação revela que o Óleo Diesel S10 **aumenta seu peso relativo na cesta ano a ano**, refletindo a transição operacional simulada da frota (redução do diesel comum em favor do S10). Diferentemente da taxa de crescimento da Seção 6.1, que compara o mesmo item em dois períodos distintos, esta proporção compara itens diferentes dentro do mesmo período, evidenciando a importância relativa (peso) de cada combustível no orçamento total — um conceito central para entender por que os índices ponderados (Seção 4.2) atribuem importâncias distintas a cada produto.
+A taxa de participação revela que o Óleo Diesel S10 **aumenta seu peso relativo na cesta ano a ano**, refletindo a transição operacional simulada da frota . Diferentemente da taxa de crescimento da gasolina, que compara o mesmo item em dois períodos distintos, esta proporção compara itens diferentes dentro do mesmo período, evidenciando a importância relativa de cada combustível no orçamento total  um conceito central para entender por que os índices ponderados atribuem importâncias distintas a cada produto.
 
-### 6.3. Taxa de Inflação Anual (IPCA)
-
-### 6.3. Taxa de Inflação Anual (IPCA)
+### 3. Taxa de Inflação Anual (IPCA)
 
 Esta é outra **taxa de variação temporal (taxa de crescimento)**, mas aplicada a um indicador oficial em vez de um preço de mercado:
 
@@ -489,7 +492,7 @@ taxa_inflacao_ipca <- base_c_ipca %>%
 knitr::kable(
   taxa_inflacao_ipca %>% dplyr::select(Ano, `Taxa de Inflação Anual (%)` = taxa_inflacao_anual),
   digits = 2,
-  caption = "Tabela X: Taxa de Inflação Anual (IPCA Acumulado)"
+  caption = "Taxa de Inflação Anual (IPCA Acumulado)"
 )
 
 ggplot(taxa_inflacao_ipca, aes(x = Ano, y = taxa_inflacao_anual)) +
@@ -500,6 +503,8 @@ ggplot(taxa_inflacao_ipca, aes(x = Ano, y = taxa_inflacao_anual)) +
   ) +
   theme_minimal()
 ```
+
+A taxa de inflação anual evidencia que **2021 foi o ano de maior pressão inflacionária da série**, com o IPCA acumulado atingindo 7,46% justamente o mesmo ano em que a taxa de crescimento da gasolina  disparou para 34,32%. Essa comparação direta confirma numericamente o que foi discutido no relatório, o aumento do combustível em 2021 superou em mais de quatro vezes a inflação geral da economia, caracterizando um encarecimento real e não apenas um repasse da perda de valor da moeda. Em contrapartida, 2019 registrou a única taxa negativa do período (-0,97%), uma deflação pontual e atípica que não se repetiu nos demais anos.
 
 ## Considerações Finais
 
